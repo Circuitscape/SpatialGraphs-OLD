@@ -1,0 +1,4 @@
+name = "SpatialGraphs"
+uuid = "b938a730-6c8e-4e5c-8f87-717ccf529fdc"
+authors = ["Vincent A. Landau <vincent@csp-inc.org>"]
+version = "0.1.0"
