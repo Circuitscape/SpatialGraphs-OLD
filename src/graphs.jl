@@ -1,12 +1,12 @@
 # Each pixel is given a unique ID, missings are automatically considered no data
 # and elements with value equal to no_data_val are also ignored (not considered valid nodes)
-function construct_nodemap(weights::Matrix,
+function construct_nodemap(weights::Matrix{T} where T <: Real,
                            no_data_val = nothing)
     dims = size(weights)
 
     # Make an resistance of unique node identifiers
     nodemap = zeros(Int64, dims)
-    is_node = coalesce(weights .!= no_data_val, false)
+    is_node = coalesce.(weights .!= no_data_val, false)
     nodemap[is_node] = 1:sum(is_node)
 
     nodemap
@@ -29,7 +29,7 @@ end
 # Add GeoArray method
 function construct_graph(weights::Matrix{T} where T <: Number,
                          nodemap::Matrix{Int};
-                         no_data_val::Number = nothing,
+                         no_data_val = nothing,
                          weights_layer_is_conductance::Bool = false,
                          connect_four_neighbors_only::Bool = false,
                          connect_using_avg_weights::Bool = true)
@@ -69,7 +69,6 @@ function construct_graph(weights::Matrix{T} where T <: Number,
                     push!(sources, nodemap[row, column])
                     push!(destinations, nodemap[row, column + 1])
                     push!(node_weights, res)
-                    #add_edge!(res_graph, nodemap[row, column], nodemap[row, column + 1], res)
                 end
                 # South
                 if row != dims[1] && nodemap[row + 1, column] != 0
@@ -78,7 +77,6 @@ function construct_graph(weights::Matrix{T} where T <: Number,
                     push!(sources, nodemap[row, column])
                     push!(destinations, nodemap[row + 1, column])
                     push!(node_weights, res)
-                    #add_edge!(res_graph, nodemap[row, column], nodemap[row + 1, column], res)
                 end
 
                 ## Add diagonal neighbors if needed
@@ -90,7 +88,6 @@ function construct_graph(weights::Matrix{T} where T <: Number,
                         push!(sources, nodemap[row, column])
                         push!(destinations, nodemap[row - 1, column + 1])
                         push!(node_weights, res)
-                        #add_edge!(res_graph, nodemap[row, column], nodemap[row - 1, column + 1], res)
                     end
                     # Southeast
                     if row != dims[1] && column != dims[2] && nodemap[row + 1, column + 1] != 0
@@ -99,13 +96,12 @@ function construct_graph(weights::Matrix{T} where T <: Number,
                         push!(sources, nodemap[row, column])
                         push!(destinations, nodemap[row + 1, column + 1])
                         push!(node_weights, res)
-                        #add_edge!(res_graph, nodemap[row, column], nodemap[row + 1, column + 1], res)
                     end
                 end
             end
         end
     end
-
+    # push!'ing to vectors then combining is way faster than add_edge!
     resistance_graph = SimpleWeightedGraph(sources, destinations, node_weights)
 
     return resistance_graph
@@ -113,6 +109,7 @@ end
 
 function construct_graph(weights::GeoData.GeoArray,
                          nodemap::GeoData.GeoArray;
+                         no_data_val = weights.missingval
                          weights_layer_is_conductance::Bool = false,
                          connect_four_neighbors_only::Bool = false,
                          connect_using_avg_weights::Bool = true)

@@ -48,27 +48,23 @@ end
 
 # Returns a nodemap to map node_ids to points in space
 # and a vector of vectors (each vector is a path)
-# TODO update this to use a Matrix or GeoData.GeoArray
-function random_lcps(resistance::Array{Union{Missing, T}, 2} where T <: Number,
-                     weights::Array{Union{Missing, T}, 2} where T <: Number,
+function random_lcps(weights::Matrix{T} where T <: Real,
+                     sample_weights::Matrix{T} where T <: Real,
                      n_paths::Int;
-                     source_percentile_threshold::Number = 0,
+                     no_data_val = nothing,
                      resistance_layer_is_conductance::Bool = false,
                      connect_four_neighbors_only::Bool = false,
                      connect_using_avg_resistances::Bool = false,
                      parallel::Bool = true)
-    if (source_percentile_threshold > 0)
-        weights = threshold_array!(weights, source_percentile_threshold)
-    end
-
-    nodemap = construct_nodemap(resistance)
-    graph = construct_graph(resistance,
+    nodemap = construct_nodemap(weights)
+    graph = construct_graph(weights,
                             nodemap,
+                            no_data_val = no_data_val,
                             resistance_layer_is_conductance = resistance_layer_is_conductance,
                             connect_four_neighbors_only = connect_four_neighbors_only,
                             connect_using_avg_resistances = connect_using_avg_resistances)
 
-    node_pairs = sample_lcp_node_pairs(weights,
+    node_pairs = sample_lcp_node_pairs(sample_weights,
                                        nodemap,
                                        n_pairs)
     #### Identify the least cost paths
@@ -90,7 +86,28 @@ function random_lcps(resistance::Array{Union{Missing, T}, 2} where T <: Number,
     return nodemap, paths
 end
 
-# TODO add method that accepts GeoData.GeoArray nodemap
+function random_lcps(weights::GeoData.GeoArray,
+                     sample_weights::GeoData.GeoArray,
+                     n_paths::Int;
+                     resistance_layer_is_conductance::Bool = false,
+                     connect_four_neighbors_only::Bool = false,
+                     connect_using_avg_resistances::Bool = false,
+                     parallel::Bool = true)
+    nodemap, paths = random_lcps(weights.data[:, :, 1],
+                                 sample_weights.data[:, :, 1],
+                                 n_paths;
+                                 no_data_val = weights.missingval,
+                                 resistance_layer_is_conductance::Bool = resistance_layer_is_conductance,
+                                 connect_four_neighbors_only::Bool = connect_four_neighbors_only,
+                                 connect_using_avg_resistances::Bool = connect_using_avg_resistances,
+                                 parallel = parallel)
+    # Convert nodemap to GeoArray
+    lat_lon_dims = get_lat_lon_dims(weights)
+    nodemap = GeoData.GeoArray(nodemap, dims = lat_lon_dims)
+
+    nodemap, paths
+end
+
 function path_to_array(path::Vector{Int},
                        nodemap::Matrix{Int})
     path_array = zeros(eltype(nodemap), size(nodemap))
@@ -99,11 +116,19 @@ function path_to_array(path::Vector{Int},
     return path_array
 end
 
-# Convert a path to a vector of it's coordinates, if the nodemap
-# TODO add method that accepts GeoData.GeoArray nodemap
+function path_to_geoarray(path::Vector{Int},
+                          nodemap::GeoData.GeoArray)
+    path_array = path_to_array(path, nodemap.data[:, :, 1])
+    lat_lon_dims = get_lat_lon_dims(weights)
+
+    return GeoData.GeoArray(path_array, dims = lat_lon_dims)
+end
+
+# Convert a path to a vector of its coordinates. Provide a geotransform to
+# get proper geographic coordinates
 function path_to_points(path::Vector{Int},
-                        nodemap::Matrix{Int},
-                        geotransform::Vector{N} where N <: Number;
+                        nodemap::Matrix{Int};
+                        geotransform::Vector{N} where N <: Number = [0.0, 1.0, 0.0, 0.0, 0.0, -1.0];
                         parallel::Bool = true)
     cart_coords = Vector{Tuple{Int64, Int64}}(undef, length(path))
 
