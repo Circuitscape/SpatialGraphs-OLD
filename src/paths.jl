@@ -10,17 +10,18 @@ end
 function sample_lcp_node_pairs(sample_weights::Matrix{T} where T <: Number, # Matrix of weights
                                nodemap::Matrix{Int}, # Matrix of node_ids to sample
                                n_pairs::Int)
+    weights = deepcopy(sample_weights)
     # Set weights (habitat) to 0 for non-nodes
-    sample_weights[nodemap .== 0] .= 0
+    weights[nodemap .== 0] .= 0
 
     # Mask weights objects from habitat layer for use in sampling
-    sample_weights_weights = StatsBase.weights(sample_weights)
+    weights_weights = StatsBase.weights(weights)
 
     # Initialize object in which to store pairs of nodemap
     samples = Vector{Vector{Int}}()
 
     # Sample n_pairs * 2 points
-    the_sample = sample(nodemap, sample_weights_weights, n_pairs * 2, replace = true)
+    the_sample = sample(nodemap, weights_weights, n_pairs * 2, replace = true)
 
     for i in 1:(n_pairs)
         push!(samples, the_sample[(2 * i - 1):(2 * i)])
@@ -32,9 +33,9 @@ end
 function sample_lcp_node_pairs(sample_weights::GeoData.GeoArray,
                                nodemap::GeoData.GeoArray,
                                n_pairs::Int)
-    weights = deepcopy(sample_weights.data)
+    weights = deepcopy(sample_weights.data[:, :, 1])
     weights[weights .== sample_weights.missingval] .= 0
-    samples = sample_lcp_node_pairs(sample_weights.data[:, :, 1],
+    samples = sample_lcp_node_pairs(weights,
                                     nodemap.data[:, :, 1],
                                     n_pairs)
 

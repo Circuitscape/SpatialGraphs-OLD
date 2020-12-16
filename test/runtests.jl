@@ -35,7 +35,7 @@ using Test, SpatialGraphs, LightGraphs
         col_diff = abs(source_coords[2] - dest_coords[2])
         @test col_diff <= 1
 
-        # Test that the weight is what it should be (assumes connect_using_avg_weights = true in graph construction)
+        # Test that the weight is what it should be (assumes connect_using_avg_resistance = true in graph construction)
         if (row_diff == 1 && col_diff == 1) # get diagonal average
             @test weight_i == SpatialGraphs.res_diagonal_avg(weights[source_coords], weights[dest_coords])
         else

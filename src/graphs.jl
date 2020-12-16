@@ -27,24 +27,26 @@ function construct_nodemap(weights::GeoData.GeoArray)
 end
 
 # Add GeoArray method
-function construct_graph(weights::Matrix{T} where T <: Number,
+function construct_graph(resistance::Matrix{T} where T <: Number,
                          nodemap::Matrix{Int};
                          no_data_val = nothing,
-                         weights_layer_is_conductance::Bool = false,
+                         resistance_layer_is_conductance::Bool = false,
                          connect_four_neighbors_only::Bool = false,
-                         connect_using_avg_weights::Bool = true)
+                         connect_using_avg_resistance::Bool = true)
+    weights = deepcopy(resistance)
+
     # Which averaging function to use
-    card_avg = connect_using_avg_weights ? res_cardinal_avg : cond_cardinal_avg
-    diag_avg = connect_using_avg_weights ? res_diagonal_avg : cond_diagonal_avg
+    card_avg = connect_using_avg_resistance ? res_cardinal_avg : cond_cardinal_avg
+    diag_avg = connect_using_avg_resistance ? res_diagonal_avg : cond_diagonal_avg
     dims = size(weights)
     not_no_data = weights .!= no_data_val
 
     if sum((weights .<= 0) .& not_no_data) != 0
-        @error "weights contains 0 or negative values aside from the provided no_data_val, which is not supported" && return
+        @error "resistance contains 0 or negative values aside from the provided no_data_val, which is not supported" && return
     end
 
-    if weights_layer_is_conductance
-        weights[not_no_data] = 1 ./ weights[not_no_data] # TODO I think this is mutating the input somehow... double check
+    if resistance_layer_is_conductance
+        weights[not_no_data] = 1 ./ weights[not_no_data]
     end
 
     # Construct graph
@@ -111,11 +113,11 @@ function construct_graph(weights::GeoData.GeoArray,
                          nodemap::GeoData.GeoArray;
                          weights_layer_is_conductance::Bool = false,
                          connect_four_neighbors_only::Bool = false,
-                         connect_using_avg_weights::Bool = true)
+                         connect_using_avg_resistance::Bool = true)
     construct_graph(weights.data[:, :, 1],
                     nodemap.data[:, :, 1],
                     no_data_val = weights.missingval,
                     weights_layer_is_conductance = weights_layer_is_conductance,
                     connect_four_neighbors_only = connect_four_neighbors_only,
-                    connect_using_avg_weights = connect_using_avg_weights)
+                    connect_using_avg_resistance = connect_using_avg_resistance)
 end
