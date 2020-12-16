@@ -109,7 +109,6 @@ end
 
 function construct_graph(weights::GeoData.GeoArray,
                          nodemap::GeoData.GeoArray;
-                         no_data_val = weights.missingval
                          weights_layer_is_conductance::Bool = false,
                          connect_four_neighbors_only::Bool = false,
                          connect_using_avg_weights::Bool = true)

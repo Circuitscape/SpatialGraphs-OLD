@@ -97,9 +97,9 @@ function random_lcps(weights::GeoData.GeoArray,
                                  sample_weights.data[:, :, 1],
                                  n_paths;
                                  no_data_val = weights.missingval,
-                                 resistance_layer_is_conductance::Bool = resistance_layer_is_conductance,
-                                 connect_four_neighbors_only::Bool = connect_four_neighbors_only,
-                                 connect_using_avg_resistances::Bool = connect_using_avg_resistances,
+                                 resistance_layer_is_conductance = resistance_layer_is_conductance,
+                                 connect_four_neighbors_only = connect_four_neighbors_only,
+                                 connect_using_avg_resistances = connect_using_avg_resistances,
                                  parallel = parallel)
     # Convert nodemap to GeoArray
     lat_lon_dims = get_lat_lon_dims(weights)
@@ -128,7 +128,7 @@ end
 # get proper geographic coordinates
 function path_to_points(path::Vector{Int},
                         nodemap::Matrix{Int};
-                        geotransform::Vector{N} where N <: Number = [0.0, 1.0, 0.0, 0.0, 0.0, -1.0];
+                        geotransform::Vector{N} where N <: Number = [0.0, 1.0, 0.0, 0.0, 0.0, -1.0],
                         parallel::Bool = true)
     cart_coords = Vector{Tuple{Int64, Int64}}(undef, length(path))
 

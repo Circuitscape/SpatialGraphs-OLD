@@ -1,5 +1,5 @@
 module SpatialGraphs
-using LightGraphs, SimpleWeightedGraphs, GeoData
+using LightGraphs, SimpleWeightedGraphs, GeoData, Base.Threads
 
 include("graphs.jl")
 export construct_nodemap, construct_graph
