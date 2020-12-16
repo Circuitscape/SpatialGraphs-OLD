@@ -1,6 +1,6 @@
 # Each pixel is given a unique ID, missings are automatically considered no data
 # and elements with value equal to no_data_val are also ignored (not considered valid nodes)
-function construct_nodemap(weights::Matrix{T} where T <: Real,
+function construct_nodemap(weights::Matrix{T} where T <: Real;
                            no_data_val = nothing)
     dims = size(weights)
 
@@ -39,7 +39,7 @@ function construct_graph(weights::Matrix{T} where T <: Number,
     dims = size(weights)
     not_no_data = weights .!= no_data_val
 
-    if sum(weights .<= 0 .& not_no_data) != 0
+    if sum((weights .<= 0) .& not_no_data) != 0
         @error "weights contains 0 or negative values aside from the provided no_data_val, which is not supported" && return
     end
 
@@ -84,7 +84,7 @@ function construct_graph(weights::Matrix{T} where T <: Number,
                     # Northeast
                     if column != dims[2] && row != 1 && nodemap[row - 1, column + 1] != 0
                         res = diag_avg(weights[row, column],
-                                       weights[resistancerow - 1, column + 1])
+                                       weights[row - 1, column + 1])
                         push!(sources, nodemap[row, column])
                         push!(destinations, nodemap[row - 1, column + 1])
                         push!(node_weights, res)

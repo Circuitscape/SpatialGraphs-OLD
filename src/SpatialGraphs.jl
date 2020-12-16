@@ -1,6 +1,8 @@
 module SpatialGraphs
 using LightGraphs, SimpleWeightedGraphs, GeoData, Base.Threads
 
+include("internals.jl")
+
 include("graphs.jl")
 export construct_nodemap, construct_graph
 
