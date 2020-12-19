@@ -1,13 +1,38 @@
 # TODO add a function that takes output from this and converts it to a GeoArray or Matrix
-function compute_cd_graph(g::AbstractSimpleWeightedGraph,
-                          node_ids; # will report lowest CD to get to any of these Number or Vector
-                          dist_fun::Function = dijkstra_shortest_paths)
+function cost_distance(g::AbstractSimpleWeightedGraph,
+                       node_ids; # will report lowest CD to get to any of these Number or Vector
+                       dist_fun::Function = dijkstra_shortest_paths)
     cd_graph = dist_fun(g, node_ids)
 
     return cd_graph
 end
 
-function sample_lcp_node_pairs(sample_weights::Matrix{T} where T <: Number, # Matrix of weights
+function cd_to_array(cdist::LightGraphs.AbstractPathState,
+                  nodemap::Matrix{Int};
+                  cost_threshold::Real = Inf)
+    cd_array = fill(0., size(nodemap))
+    cd_array .= cdist.dists[nodemap]
+
+    cd_array[cd_array .> cost_threshold] .= -1
+
+    cd_array
+end
+
+function cd_to_geoarray(cdist::LightGraphs.AbstractPathState,
+                     nodemap::GeoData.GeoArray;
+                     cost_threshold::Real = Inf)
+    cd_array = cd_to_array(cdist,
+                           nodemap.data[:, :, 1],
+                           cost_threshold = cost_threshold)
+    lat_lon_dims = get_lat_lon_dims(nodemap)
+
+    cd_geoarray = GeoData.GeoArray(cd_array,
+                                   dims = lat_lon_dims,
+                                   missingval = -1)
+    cd_geoarray
+end
+
+function sample_lcp_node_pairs(sample_weights::Matrix{T} where T <: Real, # Matrix of weights
                                nodemap::Matrix{Int}, # Matrix of node_ids to sample
                                n_pairs::Int)
     weights = deepcopy(sample_weights)
@@ -129,7 +154,7 @@ end
 # get proper geographic coordinates
 function path_to_points(path::Vector{Int},
                         nodemap::Matrix{Int};
-                        geotransform::Vector{N} where N <: Number = [0.0, 1.0, 0.0, 0.0, 0.0, -1.0],
+                        geotransform::Vector{N} where N <: Real = [0.0, 1.0, 0.0, 0.0, 0.0, -1.0],
                         parallel::Bool = true)
     cart_coords = Vector{Tuple{Int64, Int64}}(undef, length(path))
 

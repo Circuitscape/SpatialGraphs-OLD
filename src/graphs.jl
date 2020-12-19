@@ -1,24 +1,24 @@
 # Each pixel is given a unique ID, missings are automatically considered no data
 # and elements with value equal to no_data_val are also ignored (not considered valid nodes)
-function construct_nodemap(weights::Matrix{T} where T <: Real;
+function construct_nodemap(cost_surface::Matrix{T} where T <: Real;
                            no_data_val = nothing)
-    dims = size(weights)
+    dims = size(cost_surface)
 
     # Make an resistance of unique node identifiers
     nodemap = zeros(Int64, dims)
-    is_node = coalesce.(weights .!= no_data_val, false)
+    is_node = coalesce.(cost_surface .!= no_data_val, false)
     nodemap[is_node] = 1:sum(is_node)
 
     nodemap
 end
 
-function construct_nodemap(weights::GeoData.GeoArray)
+function construct_nodemap(cost_surface::GeoData.GeoArray)
     # Handle dimensions, get them so the order matches the input
-    lat_lon_dims = get_lat_lon_dims(weights)
+    lat_lon_dims = get_lat_lon_dims(cost_surface)
 
     # Make an resistance of unique node identifiers
-    nodemap = zeros(Int64, size(weights.data[:, :, 1]))
-    is_node = weights.data[:, :, 1] .!= weights.missingval
+    nodemap = zeros(Int64, size(cost_surface.data[:, :, 1]))
+    is_node = cost_surface.data[:, :, 1] .!= cost_surface.missingval
     nodemap[is_node] = 1:sum(is_node)
 
     nodemap = GeoData.GeoArray(nodemap, dims = lat_lon_dims)
@@ -27,26 +27,26 @@ function construct_nodemap(weights::GeoData.GeoArray)
 end
 
 # Add GeoArray method
-function construct_graph(resistance::Matrix{T} where T <: Number,
+function construct_graph(cost_surface::Matrix{T} where T <: Real,
                          nodemap::Matrix{Int};
                          no_data_val = nothing,
-                         resistance_layer_is_conductance::Bool = false,
+                         cost_layer_is_conductance::Bool = false,
                          connect_four_neighbors_only::Bool = false,
                          connect_using_avg_resistance::Bool = true)
-    weights = deepcopy(resistance)
+    cost = deepcopy(cost_surface)
 
     # Which averaging function to use
     card_avg = connect_using_avg_resistance ? res_cardinal_avg : cond_cardinal_avg
     diag_avg = connect_using_avg_resistance ? res_diagonal_avg : cond_diagonal_avg
-    dims = size(weights)
-    not_no_data = weights .!= no_data_val
+    dims = size(cost)
+    not_no_data = cost .!= no_data_val
 
-    if sum((weights .<= 0) .& not_no_data) != 0
+    if sum((cost .<= 0) .& not_no_data) != 0
         @error "resistance contains 0 or negative values aside from the provided no_data_val, which is not supported" && return
     end
 
-    if resistance_layer_is_conductance
-        weights[not_no_data] = 1 ./ weights[not_no_data]
+    if cost_layer_is_conductance
+        cost[not_no_data] = 1 ./ cost[not_no_data]
     end
 
     # Construct graph
@@ -66,16 +66,16 @@ function construct_graph(resistance::Matrix{T} where T <: Number,
                 ## Add cardinal neighbors
                 # East
                 if column != dims[2] && nodemap[row, column + 1] != 0
-                    res = card_avg(weights[row, column],
-                                   weights[row, column + 1])
+                    res = card_avg(cost[row, column],
+                                   cost[row, column + 1])
                     push!(sources, nodemap[row, column])
                     push!(destinations, nodemap[row, column + 1])
                     push!(node_weights, res)
                 end
                 # South
                 if row != dims[1] && nodemap[row + 1, column] != 0
-                    res = card_avg(weights[row, column],
-                                   weights[row + 1, column])
+                    res = card_avg(cost[row, column],
+                                   cost[row + 1, column])
                     push!(sources, nodemap[row, column])
                     push!(destinations, nodemap[row + 1, column])
                     push!(node_weights, res)
@@ -85,16 +85,16 @@ function construct_graph(resistance::Matrix{T} where T <: Number,
                 if !connect_four_neighbors_only
                     # Northeast
                     if column != dims[2] && row != 1 && nodemap[row - 1, column + 1] != 0
-                        res = diag_avg(weights[row, column],
-                                       weights[row - 1, column + 1])
+                        res = diag_avg(cost[row, column],
+                                       cost[row - 1, column + 1])
                         push!(sources, nodemap[row, column])
                         push!(destinations, nodemap[row - 1, column + 1])
                         push!(node_weights, res)
                     end
                     # Southeast
                     if row != dims[1] && column != dims[2] && nodemap[row + 1, column + 1] != 0
-                        res = diag_avg(weights[row, column],
-                                       weights[row + 1, column + 1])
+                        res = diag_avg(cost[row, column],
+                                       cost[row + 1, column + 1])
                         push!(sources, nodemap[row, column])
                         push!(destinations, nodemap[row + 1, column + 1])
                         push!(node_weights, res)
@@ -109,15 +109,15 @@ function construct_graph(resistance::Matrix{T} where T <: Number,
     return resistance_graph
 end
 
-function construct_graph(weights::GeoData.GeoArray,
+function construct_graph(cost_surface::GeoData.GeoArray,
                          nodemap::GeoData.GeoArray;
-                         weights_layer_is_conductance::Bool = false,
+                         cost_layer_is_conductance::Bool = false,
                          connect_four_neighbors_only::Bool = false,
                          connect_using_avg_resistance::Bool = true)
-    construct_graph(weights.data[:, :, 1],
+    construct_graph(cost_surface.data[:, :, 1],
                     nodemap.data[:, :, 1],
-                    no_data_val = weights.missingval,
-                    weights_layer_is_conductance = weights_layer_is_conductance,
+                    no_data_val = cost_surface.missingval,
+                    cost_layer_is_conductance = cost_layer_is_conductance,
                     connect_four_neighbors_only = connect_four_neighbors_only,
                     connect_using_avg_resistance = connect_using_avg_resistance)
 end
