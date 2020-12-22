@@ -80,13 +80,13 @@ function least_cost_path(g::AbstractGraph,
                          start::Union{Int, Vector{T} where T <: Int},
                          destination::Int;
                          dist_fun::Function = dijkstra_shortest_paths)
-    cost = dist_fun(g, start)
-    return enumerate_paths(cost, destination)
+    pathstate = dist_fun(g, start)
+    return enumerate_paths(pathstate, destination)
 end
 
 # Returns a nodemap to map node_ids to points in space
 # and a vector of vectors (each vector is a path)
-function random_lcps(weights::Matrix{T} where T <: Real,
+function random_lcps(cost_surface::Matrix{T} where T <: Real,
                      sample_weights::Matrix{T} where T <: Real,
                      n_paths::Int;
                      no_data_val = nothing,
@@ -94,8 +94,8 @@ function random_lcps(weights::Matrix{T} where T <: Real,
                      connect_four_neighbors_only::Bool = false,
                      connect_using_avg_resistances::Bool = false,
                      parallel::Bool = true)
-    nodemap = construct_nodemap(weights)
-    graph = construct_graph(weights,
+    nodemap = construct_nodemap(cost_surface)
+    graph = construct_graph(cost_surface,
                             nodemap,
                             no_data_val = no_data_val,
                             resistance_layer_is_conductance = resistance_layer_is_conductance,
@@ -124,14 +124,14 @@ function random_lcps(weights::Matrix{T} where T <: Real,
     return nodemap, paths
 end
 
-function random_lcps(weights::GeoData.GeoArray,
+function random_lcps(cost_surface::GeoData.GeoArray,
                      sample_weights::GeoData.GeoArray,
                      n_paths::Int;
                      resistance_layer_is_conductance::Bool = false,
                      connect_four_neighbors_only::Bool = false,
                      connect_using_avg_resistances::Bool = false,
                      parallel::Bool = true)
-    nodemap, paths = random_lcps(weights.data[:, :, 1],
+    nodemap, paths = random_lcps(cost_surface.data[:, :, 1],
                                  sample_weights.data[:, :, 1],
                                  n_paths;
                                  no_data_val = weights.missingval,
@@ -140,7 +140,7 @@ function random_lcps(weights::GeoData.GeoArray,
                                  connect_using_avg_resistances = connect_using_avg_resistances,
                                  parallel = parallel)
     # Convert nodemap to GeoArray
-    lat_lon_dims = get_lat_lon_dims(weights)
+    lat_lon_dims = get_lat_lon_dims(cost_surface)
     nodemap = GeoData.GeoArray(nodemap, dims = lat_lon_dims)
 
     nodemap, paths
