@@ -1,4 +1,11 @@
-using Test, SpatialGraphs, LightGraphs
+using Test, SpatialGraphs, LightGraphs, GeoData, ArchGDAL
+
+url_base = "https://raw.githubusercontent.com/Circuitscape/datasets/main/"
+# Download the NLCD tile used to create the resistance surface and load it
+download(string(url_base, "data/nlcd_2016_frederick_md.tif"),
+         "nlcd_2016_frederick_md.tif")
+
+garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
 
 @testset "graph construction" begin
     no_data_val = -9999
@@ -43,3 +50,27 @@ using Test, SpatialGraphs, LightGraphs
         end
     end
 end
+
+@testset "GeoArray compatibility" begin
+    old_data = deepcopy(garray.data[:, :, 1])
+
+    nodemap = construct_nodemap(garray)
+
+    @test size(nodemap) == size(garray.data[:, :, 1])
+    g = construct_graph(garray, nodemap,
+                        cost_layer_is_conductance = true,
+                        connect_four_neighbors_only = true,
+                        connect_using_avg_resistance = false)
+
+    # Make sure none of the functions changed input
+    @test old_data == float.(garray.data[:, :, 1])
+end
+
+@testset "internals" begin
+    # get_lat_lon_dims, test that they are returned in the correct order
+    ll_dims = SpatialGraphs.get_lat_lon_dims(garray)
+    @test ll_dims[1] == dims(garray)[1]
+    @test ll_dims[2] == dims(garray)[2]
+end
+
+rm("nlcd_2016_frederick_md.tif")

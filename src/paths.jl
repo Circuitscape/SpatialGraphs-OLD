@@ -8,8 +8,8 @@ function cost_distance(g::AbstractSimpleWeightedGraph,
 end
 
 function cd_to_array(cdist::LightGraphs.AbstractPathState,
-                  nodemap::Matrix{Int};
-                  cost_threshold::Real = Inf)
+                     nodemap::Matrix{Int};
+                     cost_threshold::Real = Inf)
     cd_array = fill(0., size(nodemap))
     cd_array .= cdist.dists[nodemap]
 
@@ -19,8 +19,8 @@ function cd_to_array(cdist::LightGraphs.AbstractPathState,
 end
 
 function cd_to_geoarray(cdist::LightGraphs.AbstractPathState,
-                     nodemap::GeoData.GeoArray;
-                     cost_threshold::Real = Inf)
+                        nodemap::GeoData.GeoArray;
+                        cost_threshold::Real = Inf)
     cd_array = cd_to_array(cdist,
                            nodemap.data[:, :, 1],
                            cost_threshold = cost_threshold)
@@ -67,7 +67,9 @@ function sample_lcp_node_pairs(sample_weights::GeoData.GeoArray,
     return samples
 end
 
-function least_cost_path(g::AbstractGraph, start, destination::Int)
+function least_cost_path(g::AbstractGraph,
+                         start::Union{Int, Vector{T} where T <: Int},
+                         destination::Int)
     cost = compute_cd_graph(g, start)
     return enumerate_paths(cost, destination)
 end

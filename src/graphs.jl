@@ -33,7 +33,7 @@ function construct_graph(cost_surface::Matrix{T} where T <: Real,
                          cost_layer_is_conductance::Bool = false,
                          connect_four_neighbors_only::Bool = false,
                          connect_using_avg_resistance::Bool = true)
-    cost = deepcopy(cost_surface)
+    cost = float.(deepcopy(cost_surface))
 
     # Which averaging function to use
     card_avg = connect_using_avg_resistance ? res_cardinal_avg : cond_cardinal_avg
