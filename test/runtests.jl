@@ -49,11 +49,9 @@ garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
             @test weight_i == SpatialGraphs.res_cardinal_avg(weights[source_coords], weights[dest_coords])
         end
     end
-end
 
-@testset "GeoArray compatibility" begin
+    ## GeoArray compatibility
     old_data = deepcopy(garray.data[:, :, 1])
-
     nodemap = construct_nodemap(garray)
 
     @test size(nodemap) == size(garray.data[:, :, 1])
@@ -71,6 +69,24 @@ end
     ll_dims = SpatialGraphs.get_lat_lon_dims(garray)
     @test ll_dims[1] == dims(garray)[1]
     @test ll_dims[2] == dims(garray)[2]
+end
+
+# LightGraphs and SimpleWeightedGraphs presumably already test for correctness of
+# methods, so above tests to confirm graphs are constructed properly are most
+# important
+@testset "paths" begin
+    no_data_val = -9999
+    weight = [1 1 1;
+              1 3 1;
+              1 1 no_data_val]
+
+    nodemap = construct_nodemap(weight, no_data_val = no_data_val)
+    g = construct_graph(weight, nodemap, no_data_val = no_data_val)
+
+    cdist_array = cost_distance(g, nodemap, nodemap[2, 1])
+    @test size(cdist_array) == size(nodemap)
+
+    path = least_cost_path(g, 2, 8)
 end
 
 rm("nlcd_2016_frederick_md.tif")

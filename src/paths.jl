@@ -1,29 +1,38 @@
 # TODO add a function that takes output from this and converts it to a GeoArray or Matrix
 function cost_distance(g::AbstractSimpleWeightedGraph,
-                       node_ids; # will report lowest CD to get to any of these Number or Vector
+                       nodemap::Union{Matrix{Int}, GeoData.GeoArray},
+                       node_ids; # will report lowest CD to get to any of these, Number or Vector
+                       cost_threshold::Real = Inf,
                        dist_fun::Function = dijkstra_shortest_paths)
-    cd_graph = dist_fun(g, node_ids)
+    pathstate = dist_fun(g, node_ids)
 
-    return cd_graph
+    # Return type based on nodemap type
+    if isa(nodemap, Matrix{Int})
+        return pathstate_to_array(pathstate, nodemap,
+                                  cost_threshold = cost_threshold)
+    else
+        return pathstate_to_geoarray(pathstate, nodemap,
+                                     cost_threshold = cost_threshold)
+    end
 end
 
-function cd_to_array(cdist::LightGraphs.AbstractPathState,
-                     nodemap::Matrix{Int};
-                     cost_threshold::Real = Inf)
-    cd_array = fill(0., size(nodemap))
-    cd_array .= cdist.dists[nodemap]
+function pathstate_to_array(cdist::LightGraphs.AbstractPathState,
+                            nodemap::Matrix{Int};
+                            cost_threshold::Real = Inf)
+    cd_array = fill(-1., size(nodemap))
+    cd_array[nodemap .!= 0] .= cdist.dists[nodemap[nodemap.!= 0]]
 
     cd_array[cd_array .> cost_threshold] .= -1
 
     cd_array
 end
 
-function cd_to_geoarray(cdist::LightGraphs.AbstractPathState,
-                        nodemap::GeoData.GeoArray;
-                        cost_threshold::Real = Inf)
-    cd_array = cd_to_array(cdist,
-                           nodemap.data[:, :, 1],
-                           cost_threshold = cost_threshold)
+function pathstate_to_geoarray(cdist::LightGraphs.AbstractPathState,
+                               nodemap::GeoData.GeoArray;
+                               cost_threshold::Real = Inf)
+    cd_array = pathstate_to_array(cdist,
+                                  nodemap.data[:, :, 1],
+                                  cost_threshold = cost_threshold)
     lat_lon_dims = get_lat_lon_dims(nodemap)
 
     cd_geoarray = GeoData.GeoArray(cd_array,
@@ -69,8 +78,9 @@ end
 
 function least_cost_path(g::AbstractGraph,
                          start::Union{Int, Vector{T} where T <: Int},
-                         destination::Int)
-    cost = compute_cd_graph(g, start)
+                         destination::Int;
+                         dist_fun::Function = dijkstra_shortest_paths)
+    cost = dist_fun(g, start)
     return enumerate_paths(cost, destination)
 end
 
