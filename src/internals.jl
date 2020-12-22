@@ -7,7 +7,7 @@ res_cardinal_avg(x, y) = (x + y) / 2
 res_diagonal_avg(x, y) = ((x + y) * √2) / 2
 
 
-function get_lat_lon_dims(A::GeoData.GeoArray; layer_name::String = "input")
+function get_lat_lon_dims(A::GeoData.GeoArray)
     dim_names = String.(name(dims(A)))
     lat_first = findall(dim_names .== "Latitude")[1] < findall(dim_names .== "Longitude")[1]
     first_dim_type = lat_first ? Lat : Lon

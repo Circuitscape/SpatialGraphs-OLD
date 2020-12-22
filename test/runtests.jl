@@ -87,6 +87,19 @@ end
     @test size(cdist_array) == size(nodemap)
 
     path = least_cost_path(g, 2, 8)
+    path_coords = path_to_cartesian_coords(path, nodemap, parallel = false)
+
+    # GeoArray stuff
+    nodemap = construct_nodemap(garray)
+    g = construct_graph(garray, nodemap,
+                        cost_layer_is_conductance = true,
+                        connect_four_neighbors_only = false,
+                        connect_using_avg_resistance = false)
+    path = least_cost_path(g, 2, 760)
+    path_linestring = path_to_linestring(path, nodemap)
+
+    # random lcps
+    lcps = random_lcps(garray, garray, 100)
 end
 
 rm("nlcd_2016_frederick_md.tif")

@@ -44,18 +44,18 @@ end
 function sample_lcp_node_pairs(sample_weights::Matrix{T} where T <: Real, # Matrix of weights
                                nodemap::Matrix{Int}, # Matrix of node_ids to sample
                                n_pairs::Int)
-    weights = deepcopy(sample_weights)
+    weight = float.(deepcopy(sample_weights))
     # Set weights (habitat) to 0 for non-nodes
-    weights[nodemap .== 0] .= 0
+    weight[nodemap .== 0] .= 0
 
     # Mask weights objects from habitat layer for use in sampling
-    weights_weights = StatsBase.weights(weights)
+    weight_weights = StatsBase.weights(weight)
 
     # Initialize object in which to store pairs of nodemap
     samples = Vector{Vector{Int}}()
 
     # Sample n_pairs * 2 points
-    the_sample = sample(nodemap, weights_weights, n_pairs * 2, replace = true)
+    the_sample = sample(nodemap, weight_weights, n_pairs * 2, replace = true)
 
     for i in 1:(n_pairs)
         push!(samples, the_sample[(2 * i - 1):(2 * i)])
@@ -67,9 +67,9 @@ end
 function sample_lcp_node_pairs(sample_weights::GeoData.GeoArray,
                                nodemap::GeoData.GeoArray,
                                n_pairs::Int)
-    weights = deepcopy(sample_weights.data[:, :, 1])
-    weights[weights .== sample_weights.missingval] .= 0
-    samples = sample_lcp_node_pairs(weights,
+    weight = deepcopy(sample_weights.data[:, :, 1])
+    weight[weight .== sample_weights.missingval] .= 0
+    samples = sample_lcp_node_pairs(weight,
                                     nodemap.data[:, :, 1],
                                     n_pairs)
 
@@ -90,32 +90,32 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
                      sample_weights::Matrix{T} where T <: Real,
                      n_paths::Int;
                      no_data_val = nothing,
-                     resistance_layer_is_conductance::Bool = false,
+                     cost_layer_is_conductance::Bool = false,
                      connect_four_neighbors_only::Bool = false,
-                     connect_using_avg_resistances::Bool = false,
+                     connect_using_avg_resistance::Bool = false,
                      parallel::Bool = true)
     nodemap = construct_nodemap(cost_surface)
     graph = construct_graph(cost_surface,
                             nodemap,
                             no_data_val = no_data_val,
-                            resistance_layer_is_conductance = resistance_layer_is_conductance,
+                            cost_layer_is_conductance = cost_layer_is_conductance,
                             connect_four_neighbors_only = connect_four_neighbors_only,
-                            connect_using_avg_resistances = connect_using_avg_resistances)
+                            connect_using_avg_resistance = connect_using_avg_resistance)
 
     node_pairs = sample_lcp_node_pairs(sample_weights,
                                        nodemap,
-                                       n_pairs)
+                                       n_paths)
     #### Identify the least cost paths
     # Initialize the paths
-    paths = Vector{Vector{Int}}(undef, n_pairs)
+    paths = Vector{Vector{Int}}(undef, n_paths)
 
     if parallel
-        @threads for i in 1:n_pairs
+        @threads for i in 1:n_paths
            lcp = least_cost_path(graph, node_pairs[i][1], node_pairs[i][2])
            paths[i] = lcp
         end
     else
-        for i in 1:n_pairs
+        for i in 1:n_paths
            lcp = least_cost_path(graph, node_pairs[i][1], node_pairs[i][2])
            paths[i] = lcp
         end
@@ -124,20 +124,21 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
     return nodemap, paths
 end
 
+
 function random_lcps(cost_surface::GeoData.GeoArray,
                      sample_weights::GeoData.GeoArray,
                      n_paths::Int;
-                     resistance_layer_is_conductance::Bool = false,
+                     cost_layer_is_conductance::Bool = false,
                      connect_four_neighbors_only::Bool = false,
-                     connect_using_avg_resistances::Bool = false,
+                     connect_using_avg_resistance::Bool = false,
                      parallel::Bool = true)
     nodemap, paths = random_lcps(cost_surface.data[:, :, 1],
                                  sample_weights.data[:, :, 1],
                                  n_paths;
-                                 no_data_val = weights.missingval,
-                                 resistance_layer_is_conductance = resistance_layer_is_conductance,
+                                 no_data_val = cost_surface.missingval,
+                                 cost_layer_is_conductance = cost_layer_is_conductance,
                                  connect_four_neighbors_only = connect_four_neighbors_only,
-                                 connect_using_avg_resistances = connect_using_avg_resistances,
+                                 connect_using_avg_resistance = connect_using_avg_resistance,
                                  parallel = parallel)
     # Convert nodemap to GeoArray
     lat_lon_dims = get_lat_lon_dims(cost_surface)
@@ -164,33 +165,47 @@ end
 
 # Convert a path to a vector of its coordinates. Provide a geotransform to
 # get proper geographic coordinates
-function path_to_points(path::Vector{Int},
-                        nodemap::Matrix{Int};
-                        geotransform::Vector{N} where N <: Real = [0.0, 1.0, 0.0, 0.0, 0.0, -1.0],
-                        parallel::Bool = true)
-    cart_coords = Vector{Tuple{Int64, Int64}}(undef, length(path))
+function path_to_cartesian_coords(path::Vector{Int},
+                                  nodemap::Matrix{Int};
+                                  parallel::Bool = true)
+    cart_coords = Vector{CartesianIndex{2}}(undef, length(path))
 
     if parallel
         @threads for i in 1:length(path)
             cart_coord = findall(nodemap .== path[i])
-            cart_coords[i] = convert.(Tuple, cart_coord)[1]
+            cart_coords[i] = cart_coord[1]
         end
     else
         for i in 1:length(path)
             cart_coord = findall(nodemap .== path[i])
-            cart_coords[i] = convert.(Tuple, cart_coord)[1]
+            cart_coords[i] = cart_coord[1]
         end
     end
 
-    upper_left_corner_coords = (geotransform[1], geotransform[4])
-    multiplier = (geotransform[2], geotransform[6])
-
-    # Align points with pixel center instead of upper left corners
-    upper_left_center_coords = upper_left_corner_coords .+ 0.5 .* multiplier
-
-    # Map cartesian coordinate to geographic coordinate
-    geo_coords = map(x -> x .* multiplier .+ upper_left_center_coords, cart_coords)
-
-    geo_coords
+    return cart_coords
 end
 
+function path_to_linestring(path::Vector{Int},
+                            nodemap::GeoData.GeoArray;
+                            parallel = true)
+    # first get cartesian coordinates of the nodemap
+    cart_coords = path_to_cartesian_coords(path,
+                                           nodemap.data[:, :, 1],
+                                           parallel = true)
+    # Convert to geo coordinates
+    # Convert to geo coordinates
+    lat_lon_dims = SpatialGraphs.get_lat_lon_dims(nodemap)
+    row_dim = lat_lon_dims[1].val
+    row_step = step(lat_lon_dims[1]) * 0.5
+    col_dim = lat_lon_dims[2].val
+    col_step = step(lat_lon_dims[2]) * 0.5
+
+    # Robust to permuations of GeoArray
+    if typeof(lat_lon_dims[1]) <: Lon
+        geo_coords = map(x -> (row_dim[x[1]] + row_step, col_dim[x[2]] - col_step), cart_coords)
+    else
+        geo_coords = map(x -> (col_dim[x[2]] - col_step, row_dim[x[1]] + row_step), cart_coords)
+    end
+
+    return createlinestring(geo_coords)
+end
