@@ -83,8 +83,11 @@ end
     nodemap = construct_nodemap(weight, no_data_val = no_data_val)
     g = construct_graph(weight, nodemap, no_data_val = no_data_val)
 
-    cdist_array = cost_distance(g, nodemap, nodemap[2, 1])
+    cdist_array = cost_distance(g, nodemap, 5)
     @test size(cdist_array) == size(nodemap)
+    @test all(cdist_array[nodemap[nodemap .∈ [collect(2:2:8)]]] .== 2.0)
+    @test all(cdist_array[nodemap[nodemap .∈ [[1, 3, 7]]]] .==
+        SpatialGraphs.res_diagonal_avg(3, 1))
 
     path = least_cost_path(g, 2, 8)
     path_coords = path_to_cartesian_coords(path, nodemap, parallel = false)
@@ -97,6 +100,8 @@ end
                         connect_using_avg_resistance = false)
     path = least_cost_path(g, 2, 760)
     path_linestring = path_to_linestring(path, nodemap)
+
+    cd_geoarray = cost_distance(g, nodemap, [2, 3])
 
     # random lcps
     lcps = random_lcps(garray, garray, 100)
