@@ -42,7 +42,7 @@ function construct_graph(cost_surface::Matrix{T} where T <: Real,
     not_no_data = cost .!= no_data_val
 
     if sum((cost .<= 0) .& not_no_data) != 0
-        @error "resistance contains 0 or negative values aside from the provided no_data_val, which is not supported" && return
+        @error "cost surface contains 0 or negative values (aside from the provided no_data_val), which is not supported" && return
     end
 
     if cost_layer_is_conductance
