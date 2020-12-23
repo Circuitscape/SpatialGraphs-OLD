@@ -158,7 +158,7 @@ end
 function path_to_geoarray(path::Vector{Int},
                           nodemap::GeoData.GeoArray)
     path_array = path_to_array(path, nodemap.data[:, :, 1])
-    lat_lon_dims = get_lat_lon_dims(weights)
+    lat_lon_dims = get_lat_lon_dims(nodemap)
 
     return GeoData.GeoArray(path_array, dims = lat_lon_dims)
 end

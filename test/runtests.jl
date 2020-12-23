@@ -78,7 +78,7 @@ end
     no_data_val = -9999
     weight = [1 1 1;
               1 3 1;
-              1 1 no_data_val]
+              1 1 1]
 
     nodemap = construct_nodemap(weight, no_data_val = no_data_val)
     g = construct_graph(weight, nodemap, no_data_val = no_data_val)
@@ -89,8 +89,11 @@ end
     @test all(cdist_array[nodemap[nodemap .∈ [[1, 3, 7]]]] .==
         SpatialGraphs.res_diagonal_avg(3, 1))
 
+    lcps = random_lcps(weight, fill(1., size(weight)), 2, parallel = false)
+
     path = least_cost_path(g, 2, 8)
     path_coords = path_to_cartesian_coords(path, nodemap, parallel = false)
+    path_array = path_to_array(path, nodemap)
 
     # GeoArray stuff
     nodemap = construct_nodemap(garray)
@@ -98,13 +101,14 @@ end
                         cost_layer_is_conductance = true,
                         connect_four_neighbors_only = false,
                         connect_using_avg_resistance = false)
-    path = least_cost_path(g, 2, 760)
+    path = least_cost_path(g, 2, 8)
+    path_geoarray = path_to_geoarray(path, nodemap)
     path_linestring = path_to_linestring(path, nodemap)
 
     cd_geoarray = cost_distance(g, nodemap, [2, 3])
 
     # random lcps
-    lcps = random_lcps(garray, garray, 100)
+    lcps = random_lcps(garray, garray, 10)
 end
 
 rm("nlcd_2016_frederick_md.tif")
