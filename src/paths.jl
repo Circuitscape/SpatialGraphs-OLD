@@ -70,7 +70,7 @@ function sample_lcp_node_pairs(sample_weights::GeoData.GeoArray,
     weight = deepcopy(sample_weights.data[:, :, 1])
     weight[weight .== sample_weights.missingval] .= 0
     weight[isnan.(weight)] .= 0
-    
+
     samples = sample_lcp_node_pairs(weight,
                                     nodemap.data[:, :, 1],
                                     n_pairs)
@@ -126,7 +126,6 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
     return nodemap, paths
 end
 
-
 function random_lcps(cost_surface::GeoData.GeoArray,
                      sample_weights::GeoData.GeoArray,
                      n_paths::Int;
@@ -134,19 +133,33 @@ function random_lcps(cost_surface::GeoData.GeoArray,
                      connect_four_neighbors_only::Bool = false,
                      connect_using_avg_resistance::Bool = false,
                      parallel::Bool = true)
-    nodemap, paths = random_lcps(cost_surface.data[:, :, 1],
-                                 sample_weights.data[:, :, 1],
-                                 n_paths;
-                                 no_data_val = cost_surface.missingval,
-                                 cost_layer_is_conductance = cost_layer_is_conductance,
-                                 connect_four_neighbors_only = connect_four_neighbors_only,
-                                 connect_using_avg_resistance = connect_using_avg_resistance,
-                                 parallel = parallel)
-    # Convert nodemap to GeoArray
-    lat_lon_dims = get_lat_lon_dims(cost_surface)
-    nodemap = GeoData.GeoArray(nodemap, dims = lat_lon_dims)
+    nodemap = construct_nodemap(cost_surface)
+    graph = construct_graph(cost_surface,
+                            nodemap,
+                            cost_layer_is_conductance = cost_layer_is_conductance,
+                            connect_four_neighbors_only = connect_four_neighbors_only,
+                            connect_using_avg_resistance = connect_using_avg_resistance)
 
-    nodemap, paths
+    node_pairs = sample_lcp_node_pairs(sample_weights,
+                                       nodemap,
+                                       n_paths)
+    #### Identify the least cost paths
+    # Initialize the paths
+    paths = Vector{Vector{Int}}(undef, n_paths)
+
+    if parallel
+        @threads for i in 1:n_paths
+            lcp = least_cost_path(graph, node_pairs[i][1], node_pairs[i][2])
+            paths[i] = lcp
+        end
+    else
+        for i in 1:n_paths
+            lcp = least_cost_path(graph, node_pairs[i][1], node_pairs[i][2])
+            paths[i] = lcp
+        end
+    end
+
+    return nodemap, paths
 end
 
 function path_to_array(path::Vector{Int},
