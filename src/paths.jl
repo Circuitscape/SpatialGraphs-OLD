@@ -69,6 +69,8 @@ function sample_lcp_node_pairs(sample_weights::GeoData.GeoArray,
                                n_pairs::Int)
     weight = deepcopy(sample_weights.data[:, :, 1])
     weight[weight .== sample_weights.missingval] .= 0
+    weight[isnan.(weight)] .= 0
+    
     samples = sample_lcp_node_pairs(weight,
                                     nodemap.data[:, :, 1],
                                     n_pairs)
