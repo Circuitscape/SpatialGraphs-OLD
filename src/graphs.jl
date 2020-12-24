@@ -6,7 +6,8 @@ function construct_nodemap(cost_surface::Matrix{T} where T <: Real;
 
     # Make an resistance of unique node identifiers
     nodemap = zeros(Int64, dims)
-    is_node = coalesce.(cost_surface .!= no_data_val, false)
+    is_node = (cost_surface .!= no_data_val) .&
+        ((!).(isnan.(cost_surface)))
     nodemap[is_node] = 1:sum(is_node)
 
     nodemap
@@ -18,7 +19,8 @@ function construct_nodemap(cost_surface::GeoData.GeoArray)
 
     # Make an resistance of unique node identifiers
     nodemap = zeros(Int64, size(cost_surface.data[:, :, 1]))
-    is_node = cost_surface.data[:, :, 1] .!= cost_surface.missingval
+    is_node = (cost_surface.data[:, :, 1] .!= cost_surface.missingval) .&
+        ((!).(isnan.(cost_surface.data[:, :, 1])))
     nodemap[is_node] = 1:sum(is_node)
 
     nodemap = GeoData.GeoArray(nodemap, dims = lat_lon_dims)

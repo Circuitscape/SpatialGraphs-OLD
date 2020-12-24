@@ -11,15 +11,15 @@ garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
     no_data_val = -9999
     weights = [1 1 1;
                1 3 1;
-               1 1 no_data_val]
+               1 NaN no_data_val]
 
     nodemap = construct_nodemap(weights, no_data_val = no_data_val)
 
     # NoData entries in weights are 0 in nodemap
-    @test (nodemap .== 0) == (weights .== no_data_val)
+    @test (nodemap .== 0) == ((weights .== no_data_val) .| isnan.(weights))
 
     # Values in nodemap are as expected
-    @test sort(collect(nodemap[nodemap .!= 0])) == collect(1:sum(weights .!= no_data_val))
+    @test sort(collect(nodemap[nodemap .!= 0])) == collect(1:sum((weights .!= no_data_val) .& (!).(isnan.(weights))))
 
     ## Check that values in the resistance graph are as expected
     graph = construct_graph(weights, nodemap, no_data_val = no_data_val)
