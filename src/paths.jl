@@ -96,6 +96,7 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
                      connect_four_neighbors_only::Bool = false,
                      connect_using_avg_resistance::Bool = false,
                      parallel::Bool = true)
+    @info "Constructing graphs"
     nodemap = construct_nodemap(cost_surface)
     graph = construct_graph(cost_surface,
                             nodemap,
@@ -104,22 +105,28 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
                             connect_four_neighbors_only = connect_four_neighbors_only,
                             connect_using_avg_resistance = connect_using_avg_resistance)
 
+    @info "Generating random path start and end points"
     node_pairs = sample_lcp_node_pairs(sample_weights,
                                        nodemap,
                                        n_paths)
     #### Identify the least cost paths
     # Initialize the paths
+    @info "Computing least cost paths"
     paths = Vector{Vector{Int}}(undef, n_paths)
-
+    p = Progress(n_paths;
+                 dt = 0.25,
+                 barlen = min(50, displaysize(stdout)[2] - length("Progress: 100%  Time: 00:00:00")))
     if parallel
         @threads for i in 1:n_paths
            lcp = least_cost_path(graph, node_pairs[i][1], node_pairs[i][2])
            paths[i] = lcp
+           next!(p)
         end
     else
         for i in 1:n_paths
            lcp = least_cost_path(graph, node_pairs[i][1], node_pairs[i][2])
            paths[i] = lcp
+           next!(p)
         end
     end
 
@@ -133,6 +140,7 @@ function random_lcps(cost_surface::GeoData.GeoArray,
                      connect_four_neighbors_only::Bool = false,
                      connect_using_avg_resistance::Bool = false,
                      parallel::Bool = true)
+    @info "Constructing graphs"
     nodemap = construct_nodemap(cost_surface)
     graph = construct_graph(cost_surface,
                             nodemap,
@@ -140,22 +148,29 @@ function random_lcps(cost_surface::GeoData.GeoArray,
                             connect_four_neighbors_only = connect_four_neighbors_only,
                             connect_using_avg_resistance = connect_using_avg_resistance)
 
+    @info "Generating random path start and end points"
     node_pairs = sample_lcp_node_pairs(sample_weights,
                                        nodemap,
                                        n_paths)
     #### Identify the least cost paths
     # Initialize the paths
+    @info "Computing least cost paths"
     paths = Vector{Vector{Int}}(undef, n_paths)
+    p = Progress(n_paths;
+                 dt = 0.25,
+                 barlen = min(50, displaysize(stdout)[2] - length("Progress: 100%  Time: 00:00:00")))
 
     if parallel
         @threads for i in 1:n_paths
             lcp = least_cost_path(graph, node_pairs[i][1], node_pairs[i][2])
             paths[i] = lcp
+            next!(p)
         end
     else
         for i in 1:n_paths
             lcp = least_cost_path(graph, node_pairs[i][1], node_pairs[i][2])
             paths[i] = lcp
+            next!(p)
         end
     end
 

@@ -89,7 +89,7 @@ end
     @test all(cdist_array[nodemap[nodemap .∈ [[1, 3, 7]]]] .==
         SpatialGraphs.res_diagonal_avg(3, 1))
 
-    lcps = random_lcps(weight, fill(1., size(weight)), 2, parallel = false)
+    nodemap, lcps = random_lcps(weight, fill(1., size(weight)), 50, parallel = false)
 
     path = least_cost_path(g, 2, 8)
     path_coords = path_to_cartesian_coords(path, nodemap, parallel = false)
@@ -108,7 +108,7 @@ end
     cd_geoarray = cost_distance(g, nodemap, [2, 3])
 
     # random lcps
-    lcps = random_lcps(garray, garray, 10)
+    nodemaplcps = random_lcps(garray, garray, 10)
 end
 
 rm("nlcd_2016_frederick_md.tif")

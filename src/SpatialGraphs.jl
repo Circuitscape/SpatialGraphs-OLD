@@ -1,6 +1,6 @@
 module SpatialGraphs
 using LightGraphs, SimpleWeightedGraphs, StatsBase,
-      GeoData, GeoDataFrames, Base.Threads
+      GeoData, GeoDataFrames, Base.Threads, ProgressMeter
 
 include("internals.jl")
 
