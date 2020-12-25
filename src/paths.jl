@@ -1,4 +1,3 @@
-# TODO add a function that takes output from this and converts it to a GeoArray or Matrix
 function cost_distance(g::AbstractSimpleWeightedGraph,
                        nodemap::Union{Matrix{Int}, GeoData.GeoArray},
                        node_ids::Union{Int, Array{Int, 1}}; # will report lowest CD to get to any of these, Number or Vector
@@ -94,7 +93,7 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
                      no_data_val::Union{Nothing, Real} = nothing,
                      cost_layer_is_conductance::Bool = false,
                      connect_four_neighbors_only::Bool = false,
-                     connect_using_avg_resistance::Bool = false,
+                     connect_using_avg_resistance::Bool = true,
                      parallel::Bool = true)
     @info "Constructing graphs"
     nodemap = construct_nodemap(cost_surface)
@@ -138,7 +137,7 @@ function random_lcps(cost_surface::GeoData.GeoArray,
                      n_paths::Int;
                      cost_layer_is_conductance::Bool = false,
                      connect_four_neighbors_only::Bool = false,
-                     connect_using_avg_resistance::Bool = false,
+                     connect_using_avg_resistance::Bool = true,
                      parallel::Bool = true)
     @info "Constructing graphs"
     nodemap = construct_nodemap(cost_surface)
