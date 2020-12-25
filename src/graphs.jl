@@ -123,3 +123,34 @@ function construct_graph(cost_surface::GeoData.GeoArray,
                     connect_four_neighbors_only = connect_four_neighbors_only,
                     connect_using_avg_resistance = connect_using_avg_resistance)
 end
+
+function get_cartesian_indices(node_array::Matrix{Int})
+    # Get Cartesian Index of all nodes once, this method ensures that the index
+    # in all_coords (created below) matches the node value, e.g.
+    # all_coords[10] is the cartesian index for the node with value 10
+    ###########################################
+    # THIS WILL ONLY WORK WITH NODEMAPS THAT ##
+    # WERE CREATED WITH construct_nodemap()  ##
+    ###########################################
+    all_coords = Vector{CartesianIndex{2}}(undef, maximum(node_array))
+    size_dims = size(node_array)
+    idx = 1
+    # Need to do cols then rows to match how nodemap is created
+    # this is WAY faster than a bunch of findall's
+    for col in 1:size_dims[2]
+        for row in 1:size_dims[1]
+            if node_array[row, col] == 0
+                continue
+            end
+            all_coords[idx] = CartesianIndex(row, col)
+            idx+=1
+        end
+    end
+
+    return all_coords
+end
+
+function get_cartesian_indices(nodemap::GeoArray)
+    get_cartesian_indices(nodemap.data[:, :, 1])
+end
+

@@ -130,7 +130,7 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
         end
     end
 
-    return nodemap, paths
+    return paths, nodemap
 end
 
 function random_lcps(cost_surface::GeoData.GeoArray,
@@ -174,7 +174,7 @@ function random_lcps(cost_surface::GeoData.GeoArray,
         end
     end
 
-    return nodemap, paths
+    return paths, nodemap
 end
 
 function path_to_array(path::Vector{Int},
@@ -196,33 +196,17 @@ end
 # Convert a path to a vector of its coordinates. Provide a geotransform to
 # get proper geographic coordinates
 function path_to_cartesian_coords(path::Vector{Int},
-                                  nodemap::Matrix{Int};
-                                  parallel::Bool = true)
-    cart_coords = Vector{CartesianIndex{2}}(undef, length(path))
-
-    if parallel
-        @threads for i in 1:length(path)
-            cart_coord = findall(nodemap .== path[i])
-            cart_coords[i] = cart_coord[1]
-        end
-    else
-        for i in 1:length(path)
-            cart_coord = findall(nodemap .== path[i])
-            cart_coords[i] = cart_coord[1]
-        end
-    end
+                                  nodemap::Matrix{Int})
+    cart_coords = get_cartesian_indices(nodemap)[path]
 
     return cart_coords
 end
 
 function path_to_linestring(path::Vector{Int},
-                            nodemap::GeoData.GeoArray;
-                            parallel = true)
+                            nodemap::GeoData.GeoArray)
     # first get cartesian coordinates of the nodemap
-    cart_coords = path_to_cartesian_coords(path,
-                                           nodemap.data[:, :, 1],
-                                           parallel = true)
-    # Convert to geo coordinates
+    cart_coords = get_cartesian_indices(nodemap)[path]
+
     # Convert to geo coordinates
     lat_lon_dims = SpatialGraphs.get_lat_lon_dims(nodemap)
     row_dim = lat_lon_dims[1].val
@@ -231,11 +215,57 @@ function path_to_linestring(path::Vector{Int},
     col_step = step(lat_lon_dims[2]) * 0.5
 
     # Robust to permuations of GeoArray
-    if typeof(lat_lon_dims[1]) <: Lon
+    lon_first = typeof(lat_lon_dims[1]) <: Lon
+    if lon_first
         geo_coords = map(x -> (row_dim[x[1]] + row_step, col_dim[x[2]] - col_step), cart_coords)
     else
         geo_coords = map(x -> (col_dim[x[2]] - col_step, row_dim[x[1]] + row_step), cart_coords)
     end
 
     return createlinestring(geo_coords)
+end
+
+function paths_to_linestrings(paths::Vector{Vector{Int}},
+                              nodemap::GeoData.GeoArray;
+                              parallel = true)
+    # Info for conversion to geo coordinates
+    lat_lon_dims = SpatialGraphs.get_lat_lon_dims(nodemap)
+    row_dim = lat_lon_dims[1].val
+    row_step = step(lat_lon_dims[1]) * 0.5
+    col_dim = lat_lon_dims[2].val
+    col_step = step(lat_lon_dims[2]) * 0.5
+
+    # get cartesian coordinates
+    all_cart_coords = get_cartesian_indices(nodemap)
+    geo_coords_all = Vector{Vector{Tuple{Float64, Float64}}}(undef, length(paths))
+
+    lon_first = typeof(lat_lon_dims[1]) <: Lon
+
+    if parallel
+        @threads for i in 1:length(paths)
+            cart_coords = all_cart_coords[paths[i]]
+            if lon_first
+                geo_coords = map(x -> (row_dim[x[1]] + row_step, col_dim[x[2]] - col_step), cart_coords)
+                geo_coords_all[i] = geo_coords
+            else
+                geo_coords = map(x -> (col_dim[x[2]] - col_step, row_dim[x[1]] + row_step), cart_coords)
+                geo_coords_all[i] = geo_coords
+            end
+        end
+    else
+        for i in 1:length(paths)
+            cart_coords = all_cart_coords[paths[i]]
+            if lon_first
+                geo_coords = map(x -> (row_dim[x[1]] + row_step, col_dim[x[2]] - col_step), cart_coords)
+                geo_coords_all[i] = geo_coords
+            else
+                geo_coords = map(x -> (col_dim[x[2]] - col_step, row_dim[x[1]] + row_step), cart_coords)
+                geo_coords_all[i] = geo_coords
+            end
+        end
+    end
+
+    linestrings = createlinestring.(geo_coords_all)
+
+    return linestrings
 end
