@@ -42,7 +42,7 @@ garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
         col_diff = abs(source_coords[2] - dest_coords[2])
         @test col_diff <= 1
 
-        # Test that the weight is what it should be (assumes connect_using_avg_resistance = true in graph construction)
+        # Test that the weight is what it should be (assumes connect_using_avg_cost = true in graph construction)
         if (row_diff == 1 && col_diff == 1) # get diagonal average
             @test weight_i == SpatialGraphs.res_diagonal_avg(weights[source_coords], weights[dest_coords])
         else
@@ -58,7 +58,7 @@ garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
     g = construct_weighted_graph(garray, nodemap,
                         cost_layer_is_conductance = true,
                         connect_four_neighbors_only = true,
-                        connect_using_avg_resistance = false)
+                        connect_using_avg_cost = false)
 
     # Make sure none of the functions changed input
     @test old_data == float.(garray.data[:, :, 1])
@@ -100,7 +100,7 @@ end
     g = construct_weighted_graph(garray, nodemap,
                         cost_layer_is_conductance = true,
                         connect_four_neighbors_only = false,
-                        connect_using_avg_resistance = false)
+                        connect_using_avg_cost = false)
     path = least_cost_path(g, 2, 8)
     path_geoarray = path_to_geoarray(path, nodemap)
     path_linestring = path_to_linestring(path, nodemap)

@@ -93,7 +93,7 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
                      no_data_val::Union{Nothing, Real} = nothing,
                      cost_layer_is_conductance::Bool = false,
                      connect_four_neighbors_only::Bool = false,
-                     connect_using_avg_resistance::Bool = true,
+                     connect_using_avg_cost::Bool = true,
                      parallel::Bool = true)
     @info "Constructing graphs"
     nodemap = construct_nodemap(cost_surface)
@@ -102,7 +102,7 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
                             no_data_val = no_data_val,
                             cost_layer_is_conductance = cost_layer_is_conductance,
                             connect_four_neighbors_only = connect_four_neighbors_only,
-                            connect_using_avg_resistance = connect_using_avg_resistance)
+                            connect_using_avg_cost = connect_using_avg_cost)
 
     @info "Generating random path start and end points"
     node_pairs = sample_node_pairs(sample_weights,
@@ -137,7 +137,7 @@ function random_lcps(cost_surface::GeoData.GeoArray,
                      n_paths::Int;
                      cost_layer_is_conductance::Bool = false,
                      connect_four_neighbors_only::Bool = false,
-                     connect_using_avg_resistance::Bool = true,
+                     connect_using_avg_cost::Bool = true,
                      parallel::Bool = true)
     @info "Constructing graphs"
     nodemap = construct_nodemap(cost_surface)
@@ -145,7 +145,7 @@ function random_lcps(cost_surface::GeoData.GeoArray,
                             nodemap,
                             cost_layer_is_conductance = cost_layer_is_conductance,
                             connect_four_neighbors_only = connect_four_neighbors_only,
-                            connect_using_avg_resistance = connect_using_avg_resistance)
+                            connect_using_avg_cost = connect_using_avg_cost)
 
     @info "Generating random path start and end points"
     node_pairs = sample_node_pairs(sample_weights,

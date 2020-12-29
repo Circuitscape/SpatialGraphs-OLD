@@ -47,13 +47,13 @@ end
                              no_data_val = nothing,
                              cost_layer_is_conductance = false,
                              connect_four_neighbors_only = false,
-                             connect_using_avg_resistance = true)
+                             connect_using_avg_cost = true)
 
     construct_weighted_graph(cost_surface::GeoData.GeoArray,
                              nodemap::GeoData.GeoArray;
                              cost_layer_is_conductance::Bool = false,
                              connect_four_neighbors_only::Bool = false,
-                             connect_using_avg_resistance::Bool = true)
+                             connect_using_avg_cost::Bool = true)
 
 Construct a weighted graph from a `cost_surface` representing the cost to
 traverse each pixel.
@@ -63,12 +63,12 @@ function construct_weighted_graph(cost_surface::Matrix{T} where T <: Real,
                                   no_data_val = nothing,
                                   cost_layer_is_conductance::Bool = false,
                                   connect_four_neighbors_only::Bool = false,
-                                  connect_using_avg_resistance::Bool = true)
+                                  connect_using_avg_cost::Bool = true)
     cost = float.(deepcopy(cost_surface))
 
     # Which averaging function to use
-    card_avg = connect_using_avg_resistance ? res_cardinal_avg : cond_cardinal_avg
-    diag_avg = connect_using_avg_resistance ? res_diagonal_avg : cond_diagonal_avg
+    card_avg = connect_using_avg_cost ? res_cardinal_avg : cond_cardinal_avg
+    diag_avg = connect_using_avg_cost ? res_diagonal_avg : cond_diagonal_avg
     dims = size(cost)
     not_no_data = cost .!= no_data_val
 
@@ -144,13 +144,13 @@ function construct_weighted_graph(cost_surface::GeoData.GeoArray,
                                   nodemap::GeoData.GeoArray;
                                   cost_layer_is_conductance::Bool = false,
                                   connect_four_neighbors_only::Bool = false,
-                                  connect_using_avg_resistance::Bool = true)
+                                  connect_using_avg_cost::Bool = true)
     construct_weighted_graph(cost_surface.data[:, :, 1],
                              nodemap.data[:, :, 1],
                              no_data_val = cost_surface.missingval,
                              cost_layer_is_conductance = cost_layer_is_conductance,
                              connect_four_neighbors_only = connect_four_neighbors_only,
-                             connect_using_avg_resistance = connect_using_avg_resistance)
+                             connect_using_avg_cost = connect_using_avg_cost)
 end
 
 function get_cartesian_indices(node_array::Matrix{Int})
