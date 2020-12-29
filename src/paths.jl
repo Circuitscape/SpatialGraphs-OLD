@@ -179,7 +179,11 @@ end
 function path_to_array(path::Vector{Int},
                        nodemap::Matrix{Int})
     path_array = zeros(eltype(nodemap), size(nodemap))
-    path_array[in.(nodemap, [path])] .= 1
+
+    # nodemap needs to have been created by construct_nodemap or other
+    # SpatialGraphs function for this to work properly
+    coords = path_to_cartesian_coords(path, nodemap)
+    path_array[coords] .= 1
 
     return path_array
 end
@@ -192,8 +196,7 @@ function path_to_geoarray(path::Vector{Int},
     return GeoData.GeoArray(path_array, dims = lat_lon_dims)
 end
 
-# Convert a path to a vector of its coordinates. Provide a geotransform to
-# get proper geographic coordinates
+# Convert a path to a vector of its coordinates.
 function path_to_cartesian_coords(path::Vector{Int},
                                   nodemap::Matrix{Int})
     cart_coords = get_cartesian_indices(nodemap)[path]
