@@ -6,7 +6,7 @@ using ArchGDAL: createlinestring
 include("internals.jl")
 
 include("graphs.jl")
-export construct_nodemap, construct_graph
+export construct_nodemap, construct_weighted_graph
 
 include("paths.jl")
 export sample_node_pairs, cost_distance, least_cost_path,

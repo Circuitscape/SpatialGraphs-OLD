@@ -22,7 +22,7 @@ garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
     @test sort(collect(nodemap[nodemap .!= 0])) == collect(1:sum((weights .!= no_data_val) .& (!).(isnan.(weights))))
 
     ## Check that values in the resistance graph are as expected
-    graph = construct_graph(weights, nodemap, no_data_val = no_data_val)
+    graph = construct_weighted_graph(weights, nodemap, no_data_val = no_data_val)
     the_edges = collect(edges(graph))
 
     # Test that the edges are correct and have proper weights
@@ -55,7 +55,7 @@ garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
     nodemap = construct_nodemap(garray)
 
     @test size(nodemap) == size(garray[Band(Between(1, 1))])
-    g = construct_graph(garray, nodemap,
+    g = construct_weighted_graph(garray, nodemap,
                         cost_layer_is_conductance = true,
                         connect_four_neighbors_only = true,
                         connect_using_avg_resistance = false)
@@ -81,7 +81,7 @@ end
               1 1 1]
 
     nodemap = construct_nodemap(weight, no_data_val = no_data_val)
-    g = construct_graph(weight, nodemap, no_data_val = no_data_val)
+    g = construct_weighted_graph(weight, nodemap, no_data_val = no_data_val)
 
     cdist_array = cost_distance(g, nodemap, 5)
     @test size(cdist_array) == size(nodemap)
@@ -97,7 +97,7 @@ end
 
     # GeoArray stuff
     nodemap = construct_nodemap(garray)
-    g = construct_graph(garray, nodemap,
+    g = construct_weighted_graph(garray, nodemap,
                         cost_layer_is_conductance = true,
                         connect_four_neighbors_only = false,
                         connect_using_avg_resistance = false)

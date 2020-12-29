@@ -97,7 +97,7 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
                      parallel::Bool = true)
     @info "Constructing graphs"
     nodemap = construct_nodemap(cost_surface)
-    graph = construct_graph(cost_surface,
+    graph = construct_weighted_graph(cost_surface,
                             nodemap,
                             no_data_val = no_data_val,
                             cost_layer_is_conductance = cost_layer_is_conductance,
@@ -141,7 +141,7 @@ function random_lcps(cost_surface::GeoData.GeoArray,
                      parallel::Bool = true)
     @info "Constructing graphs"
     nodemap = construct_nodemap(cost_surface)
-    graph = construct_graph(cost_surface,
+    graph = construct_weighted_graph(cost_surface,
                             nodemap,
                             cost_layer_is_conductance = cost_layer_is_conductance,
                             connect_four_neighbors_only = connect_four_neighbors_only,

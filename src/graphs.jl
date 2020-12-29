@@ -1,27 +1,38 @@
 # Each pixel is given a unique ID, missings are automatically considered no data
 # and elements with value equal to no_data_val are also ignored (not considered valid nodes)
-function construct_nodemap(cost_surface::Matrix{T} where T <: Real;
+"""
+    construct_nodemap(A::Matrix{T} where T <: Real;
+                      no_data_val = nothing)
+    construct_nodemap(A::GeoData.GeoArray)
+
+Construct a nodemap from `A` and with dims equal to `size(A)` that is used
+to provide spatial references for each vertex in the graph representation of
+`A`. Each element in the nodemap is given a unique integer ID. Elements in the
+nodemap that correspond to NoData in `A` (`A.missingval` if `A` is a GeoArray,
+or `no_data_val` if `A` is a matrix) are given a value of 0.
+"""
+function construct_nodemap(A::Matrix{T} where T<: Real;
                            no_data_val = nothing)
-    dims = size(cost_surface)
+    dims = size(A)
 
     # Make an resistance of unique node identifiers
     nodemap = zeros(Int64, dims)
-    is_node = (cost_surface .!= no_data_val) .&
-        ((!).(isnan.(cost_surface)))
+    is_node = (A .!= no_data_val) .&
+        ((!).(isnan.(A)))
     nodemap[is_node] = 1:sum(is_node)
 
     nodemap
 end
 
-function construct_nodemap(cost_surface::GeoData.GeoArray)
+function construct_nodemap(A::GeoData.GeoArray)
     # Handle dimensions, get them so the order matches the input
-    lat_lon_dims = get_lat_lon_dims(cost_surface)
-    cost_surface_band1 = cost_surface[Band(Between(1, 1))]
+    lat_lon_dims = get_lat_lon_dims(A)
+    A_band1 = A[Band(Between(1, 1))]
 
     # Make an array of unique node identifiers
-    nodemap = zeros(Int64, size(cost_surface_band1.data))
-    is_node = (cost_surface_band1.data .!= cost_surface.missingval) .&
-        ((!).(isnan.(cost_surface_band1.data)))
+    nodemap = zeros(Int64, size(A_band1.data))
+    is_node = (A_band1.data .!= A.missingval) .&
+        ((!).(isnan.(A_band1.data)))
 
     nodemap[is_node] = 1:sum(is_node)
 
@@ -30,13 +41,29 @@ function construct_nodemap(cost_surface::GeoData.GeoArray)
     nodemap
 end
 
-# Add GeoArray method
-function construct_graph(cost_surface::Matrix{T} where T <: Real,
-                         nodemap::Matrix{Int};
-                         no_data_val = nothing,
-                         cost_layer_is_conductance::Bool = false,
-                         connect_four_neighbors_only::Bool = false,
-                         connect_using_avg_resistance::Bool = true)
+"""
+    construct_weighted_graph(cost_surface::Matrix{T} where T <: Real,
+                             nodemap::Matrix{Int};
+                             no_data_val = nothing,
+                             cost_layer_is_conductance = false,
+                             connect_four_neighbors_only = false,
+                             connect_using_avg_resistance = true)
+
+    construct_weighted_graph(cost_surface::GeoData.GeoArray,
+                             nodemap::GeoData.GeoArray;
+                             cost_layer_is_conductance::Bool = false,
+                             connect_four_neighbors_only::Bool = false,
+                             connect_using_avg_resistance::Bool = true)
+
+Construct a weighted graph from a `cost_surface` representing the cost to
+traverse each pixel.
+"""
+function construct_weighted_graph(cost_surface::Matrix{T} where T <: Real,
+                                  nodemap::Matrix{Int};
+                                  no_data_val = nothing,
+                                  cost_layer_is_conductance::Bool = false,
+                                  connect_four_neighbors_only::Bool = false,
+                                  connect_using_avg_resistance::Bool = true)
     cost = float.(deepcopy(cost_surface))
 
     # Which averaging function to use
@@ -113,17 +140,17 @@ function construct_graph(cost_surface::Matrix{T} where T <: Real,
     return resistance_graph
 end
 
-function construct_graph(cost_surface::GeoData.GeoArray,
-                         nodemap::GeoData.GeoArray;
-                         cost_layer_is_conductance::Bool = false,
-                         connect_four_neighbors_only::Bool = false,
-                         connect_using_avg_resistance::Bool = true)
-    construct_graph(cost_surface.data[:, :, 1],
-                    nodemap.data[:, :, 1],
-                    no_data_val = cost_surface.missingval,
-                    cost_layer_is_conductance = cost_layer_is_conductance,
-                    connect_four_neighbors_only = connect_four_neighbors_only,
-                    connect_using_avg_resistance = connect_using_avg_resistance)
+function construct_weighted_graph(cost_surface::GeoData.GeoArray,
+                                  nodemap::GeoData.GeoArray;
+                                  cost_layer_is_conductance::Bool = false,
+                                  connect_four_neighbors_only::Bool = false,
+                                  connect_using_avg_resistance::Bool = true)
+    construct_weighted_graph(cost_surface.data[:, :, 1],
+                             nodemap.data[:, :, 1],
+                             no_data_val = cost_surface.missingval,
+                             cost_layer_is_conductance = cost_layer_is_conductance,
+                             connect_four_neighbors_only = connect_four_neighbors_only,
+                             connect_using_avg_resistance = connect_using_avg_resistance)
 end
 
 function get_cartesian_indices(node_array::Matrix{Int})
