@@ -40,7 +40,7 @@ function pathstate_to_geoarray(cdist::LightGraphs.AbstractPathState,
     cd_geoarray
 end
 
-function sample_lcp_node_pairs(sample_weights::Matrix{T} where T <: Real, # Matrix of weights
+function sample_node_pairs(sample_weights::Matrix{T} where T <: Real, # Matrix of weights
                                nodemap::Matrix{Int}, # Matrix of node_ids to sample
                                n_pairs::Int)
     weight = float.(deepcopy(sample_weights))
@@ -63,14 +63,14 @@ function sample_lcp_node_pairs(sample_weights::Matrix{T} where T <: Real, # Matr
     return samples
 end
 
-function sample_lcp_node_pairs(sample_weights::GeoData.GeoArray,
+function sample_node_pairs(sample_weights::GeoData.GeoArray,
                                nodemap::GeoData.GeoArray,
                                n_pairs::Int)
     weight = deepcopy(sample_weights.data[:, :, 1])
     weight[weight .== sample_weights.missingval] .= 0
     weight[isnan.(weight)] .= 0
 
-    samples = sample_lcp_node_pairs(weight,
+    samples = sample_node_pairs(weight,
                                     nodemap.data[:, :, 1],
                                     n_pairs)
 
@@ -105,7 +105,7 @@ function random_lcps(cost_surface::Matrix{T} where T <: Real,
                             connect_using_avg_resistance = connect_using_avg_resistance)
 
     @info "Generating random path start and end points"
-    node_pairs = sample_lcp_node_pairs(sample_weights,
+    node_pairs = sample_node_pairs(sample_weights,
                                        nodemap,
                                        n_paths)
     #### Identify the least cost paths
@@ -148,7 +148,7 @@ function random_lcps(cost_surface::GeoData.GeoArray,
                             connect_using_avg_resistance = connect_using_avg_resistance)
 
     @info "Generating random path start and end points"
-    node_pairs = sample_lcp_node_pairs(sample_weights,
+    node_pairs = sample_node_pairs(sample_weights,
                                        nodemap,
                                        n_paths)
     #### Identify the least cost paths
