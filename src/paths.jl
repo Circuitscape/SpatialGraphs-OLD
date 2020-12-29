@@ -34,7 +34,7 @@ function pathstate_to_geoarray(cdist::LightGraphs.AbstractPathState,
                                   cost_threshold = cost_threshold)
     lat_lon_dims = get_lat_lon_dims(nodemap)
 
-    cd_geoarray = GeoData.GeoArray(cd_array,
+    cd_geoarray = GeoData.GeoArray(reshape(cd_array, size(nodemap)),
                                    dims = lat_lon_dims,
                                    missingval = -1)
     cd_geoarray
@@ -190,7 +190,8 @@ end
 
 function path_to_geoarray(path::Vector{Int},
                           nodemap::GeoData.GeoArray)
-    path_array = path_to_array(path, nodemap.data[:, :, 1])
+    path_array = reshape(path_to_array(path, nodemap.data[:, :, 1]),
+                         size(nodemap.data))
     lat_lon_dims = get_lat_lon_dims(nodemap)
 
     return GeoData.GeoArray(path_array, dims = lat_lon_dims)

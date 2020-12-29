@@ -54,7 +54,7 @@ garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
     old_data = deepcopy(garray.data[:, :, 1])
     nodemap = construct_nodemap(garray)
 
-    @test size(nodemap) == size(garray.data[:, :, 1])
+    @test size(nodemap) == size(garray[Band(Between(1, 1))])
     g = construct_graph(garray, nodemap,
                         cost_layer_is_conductance = true,
                         connect_four_neighbors_only = true,

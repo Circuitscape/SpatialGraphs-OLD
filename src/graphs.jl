@@ -16,11 +16,13 @@ end
 function construct_nodemap(cost_surface::GeoData.GeoArray)
     # Handle dimensions, get them so the order matches the input
     lat_lon_dims = get_lat_lon_dims(cost_surface)
+    cost_surface_band1 = cost_surface[Band(Between(1, 1))]
 
-    # Make an resistance of unique node identifiers
-    nodemap = zeros(Int64, size(cost_surface.data[:, :, 1]))
-    is_node = (cost_surface.data[:, :, 1] .!= cost_surface.missingval) .&
-        ((!).(isnan.(cost_surface.data[:, :, 1])))
+    # Make an array of unique node identifiers
+    nodemap = zeros(Int64, size(cost_surface_band1.data))
+    is_node = (cost_surface_band1.data .!= cost_surface.missingval) .&
+        ((!).(isnan.(cost_surface_band1.data)))
+
     nodemap[is_node] = 1:sum(is_node)
 
     nodemap = GeoData.GeoArray(nodemap, dims = lat_lon_dims)

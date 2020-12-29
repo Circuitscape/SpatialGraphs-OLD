@@ -13,5 +13,5 @@ function get_lat_lon_dims(A::GeoData.GeoArray)
     first_dim_type = lat_first ? Lat : Lon
     second_dim_type = lat_first ? Lon : Lat
 
-    (dims(A, first_dim_type), dims(A, second_dim_type))
+    (dims(A, first_dim_type), dims(A, second_dim_type), Band(1:1, Categorical(order = Ordered())))
 end
