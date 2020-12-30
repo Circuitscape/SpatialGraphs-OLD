@@ -73,7 +73,7 @@ function construct_weighted_graph(cost_surface::Matrix{T} where T <: Real,
     not_no_data = cost .!= no_data_val
 
     if sum((cost .<= 0) .& not_no_data) != 0
-        @error "cost surface contains 0 or negative values (aside from the provided no_data_val), which is not supported" && return
+        @error("cost surface contains 0 or negative values (aside from the provided no_data_val), which is not supported")
     end
 
     if cost_layer_is_conductance
@@ -91,12 +91,12 @@ function construct_weighted_graph(cost_surface::Matrix{T} where T <: Real,
     # the graph is undirected and edge additions will be redundant
     for row in 1:dims[1]
         for column in 1:dims[2]
-            if nodemap[row, column] == 0
+            if nodemap[row, column] == 0 || cost[row, column] == no_data_val
                 continue
             else
                 ## Add cardinal neighbors
                 # East
-                if column != dims[2] && nodemap[row, column + 1] != 0
+                if column != dims[2] && nodemap[row, column + 1] != 0 && cost[row, column + 1] != no_data_val
                     res = card_avg(cost[row, column],
                                    cost[row, column + 1])
                     push!(sources, nodemap[row, column])
@@ -104,7 +104,7 @@ function construct_weighted_graph(cost_surface::Matrix{T} where T <: Real,
                     push!(node_weights, res)
                 end
                 # South
-                if row != dims[1] && nodemap[row + 1, column] != 0
+                if row != dims[1] && nodemap[row + 1, column] != 0  && cost[row + 1, column] != no_data_val
                     res = card_avg(cost[row, column],
                                    cost[row + 1, column])
                     push!(sources, nodemap[row, column])
@@ -115,7 +115,7 @@ function construct_weighted_graph(cost_surface::Matrix{T} where T <: Real,
                 ## Add diagonal neighbors if needed
                 if !connect_four_neighbors_only
                     # Northeast
-                    if column != dims[2] && row != 1 && nodemap[row - 1, column + 1] != 0
+                    if column != dims[2] && row != 1 && nodemap[row - 1, column + 1] != 0 && cost[row - 1, column + 1] != no_data_val
                         res = diag_avg(cost[row, column],
                                        cost[row - 1, column + 1])
                         push!(sources, nodemap[row, column])
@@ -123,7 +123,7 @@ function construct_weighted_graph(cost_surface::Matrix{T} where T <: Real,
                         push!(node_weights, res)
                     end
                     # Southeast
-                    if row != dims[1] && column != dims[2] && nodemap[row + 1, column + 1] != 0
+                    if row != dims[1] && column != dims[2] && nodemap[row + 1, column + 1] != 0  && cost[row + 1, column + 1] != no_data_val
                         res = diag_avg(cost[row, column],
                                        cost[row + 1, column + 1])
                         push!(sources, nodemap[row, column])
@@ -134,8 +134,13 @@ function construct_weighted_graph(cost_surface::Matrix{T} where T <: Real,
             end
         end
     end
+
     # push!'ing to vectors then combining is way faster than add_edge!
-    resistance_graph = SimpleWeightedGraph(sources, destinations, node_weights)
+    # Sometimes, depending on the nodemap, there may be multiple edges with
+    # different weights connecting the same two vertices (only when vertices
+    # span multiple "pixels"). Default to using the min of all duplicates via
+    # combine = min
+    resistance_graph = SimpleWeightedGraph(sources, destinations, node_weights, combine = min)
 
     return resistance_graph
 end
@@ -161,6 +166,14 @@ function get_cartesian_indices(node_array::Matrix{Int})
     # THIS WILL ONLY WORK WITH NODEMAPS THAT ##
     # WERE CREATED WITH construct_nodemap()  ##
     ###########################################
+
+    # Throw an error if node is formatted the right way
+    nodes_bool = node_array .!= 0
+    if node_array[nodes_bool] != collect(1:sum(nodes_bool))
+        @error("This function does not support nodemaps that were not created with construct_nodemap")
+    end
+
+
     all_coords = Vector{CartesianIndex{2}}(undef, maximum(node_array))
     size_dims = size(node_array)
     idx = 1
@@ -182,4 +195,3 @@ end
 function get_cartesian_indices(nodemap::GeoArray)
     get_cartesian_indices(nodemap.data[:, :, 1])
 end
-
