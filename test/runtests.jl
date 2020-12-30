@@ -9,20 +9,20 @@ garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
 
 @testset "graph construction" begin
     no_data_val = -9999
-    weights = [1 1 1;
+    cost = [1 1 1;
                1 3 1;
                1 NaN no_data_val]
 
-    nodemap = construct_nodemap(weights, no_data_val = no_data_val)
+    nodemap = construct_nodemap(cost, no_data_val = no_data_val)
 
-    # NoData entries in weights are 0 in nodemap
-    @test (nodemap .== 0) == ((weights .== no_data_val) .| isnan.(weights))
+    # NoData entries in cost are 0 in nodemap
+    @test (nodemap .== 0) == ((cost .== no_data_val) .| isnan.(cost))
 
     # Values in nodemap are as expected
-    @test sort(collect(nodemap[nodemap .!= 0])) == collect(1:sum((weights .!= no_data_val) .& (!).(isnan.(weights))))
+    @test sort(collect(nodemap[nodemap .!= 0])) == collect(1:sum((cost .!= no_data_val) .& (!).(isnan.(cost))))
 
     ## Check that values in the resistance graph are as expected
-    graph = construct_weighted_graph(weights, nodemap, no_data_val = no_data_val)
+    graph = construct_weighted_graph(cost, nodemap, no_data_val = no_data_val)
     the_edges = collect(edges(graph))
 
     # Test that the edges are correct and have proper weights
@@ -44,11 +44,25 @@ garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
 
         # Test that the weight is what it should be (assumes connect_using_avg_cost = true in graph construction)
         if (row_diff == 1 && col_diff == 1) # get diagonal average
-            @test weight_i == SpatialGraphs.res_diagonal_avg(weights[source_coords], weights[dest_coords])
+            @test weight_i == SpatialGraphs.res_diagonal_avg(cost[source_coords], cost[dest_coords])
         else
-            @test weight_i == SpatialGraphs.res_cardinal_avg(weights[source_coords], weights[dest_coords])
+            @test weight_i == SpatialGraphs.res_cardinal_avg(cost[source_coords], cost[dest_coords])
         end
     end
+
+    ## Test that construct_weighted_graphs works when a vertex (ID = 1) takes up
+    ## multiple pixels
+    nodemap = [1 0 4;
+               1 2 5;
+               1 3 1]
+    cost = [1 -1 -1;
+            1  1  2;
+            3  2  1]
+
+    graph = construct_weighted_graph(cost, nodemap, no_data_val = -1)
+    # there are multiple connections from nodes 1 to 2, want to make sure we're
+    # using the minimum cost, which in the above case would be 1
+    @test graph.weights[1, 2] == 1
 
     ## GeoArray compatibility
     old_data = deepcopy(garray.data[:, :, 1])
@@ -94,6 +108,17 @@ end
     path = least_cost_path(g, 2, 8)
     path_coords = path_to_cartesian_coords(path, nodemap)
     path_array = path_to_array(path, nodemap)
+
+    # With custom nodemap
+    nodemap = [1 0 4;
+               1 2 5;
+               1 3 6]
+    cost = [1 -1 -1;
+            1  1  2;
+            3  2  1]
+    graph = construct_weighted_graph(cost, nodemap, no_data_val = -1)
+    path = least_cost_path(graph, 1, 5)
+    @test_throws BoundsError path_coords = path_to_cartesian_coords(path, nodemap)
 
     # GeoArray stuff
     nodemap = construct_nodemap(garray)
