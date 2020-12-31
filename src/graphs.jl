@@ -5,8 +5,8 @@
                       no_data_val = nothing)
     construct_nodemap(A::GeoData.GeoArray)
 
-Construct a nodemap from `A` and with dims equal to `size(A)` that is used
-to provide spatial references for each vertex in the graph representation of
+Construct a nodemap from `A` and with dims equal to `size(A)` that can be used
+to provide spatial references for each vertex in a graph representation of
 `A`. Each element in the nodemap is given a unique integer ID. Elements in the
 nodemap that correspond to NoData in `A` (`A.missingval` if `A` is a GeoArray,
 or `no_data_val` if `A` is a matrix) are given a value of 0.
@@ -51,12 +51,45 @@ end
 
     construct_weighted_graph(cost_surface::GeoData.GeoArray,
                              nodemap::GeoData.GeoArray;
-                             cost_layer_is_conductance::Bool = false,
-                             connect_four_neighbors_only::Bool = false,
-                             connect_using_avg_cost::Bool = true)
+                             cost_layer_is_conductance = false,
+                             connect_four_neighbors_only = false,
+                             connect_using_avg_cost = true)
 
-Construct a weighted graph from a `cost_surface` representing the cost to
-traverse each pixel.
+Construct a weighted graph from a `cost_surface` representing traversal costs`
+and a `nodemap` representing the locations in space (either geographic or
+cartesian) of the vertices to be added to the graph. The resulting graph will
+contain edges connecting neighboring elements in `nodemap` with weights
+calculated using the corresponding elements in `cost_surface` for each element
+in the nodemap. For cardinal neighbors with cartesian coordinates [i, j] and
+[i+1, j], the corresponding edge connecting node `nodemap[i, j]` to node
+`nodemap[i + 1, j]`. It's weight (traversal cost) equals
+`(cost_surface[i, j] + cost_surface[i+1, j]) / 2`. For diagonal neighbors,
+[i, j] and [i+1, j+1], the edge weight equals
+`(2/√2)*(cost_surface[i, j] + cost_surface[i+1, j+1]) / 2`. The average of the
+two costs is multiplied by 2/√2 to account for the increased distance between
+diagonal neighbors.
+
+## Keyword Arguments
+- `no_data_val`: Real. The value corresponding to "no data" in `cost_surface`.
+Elements equal to `no_data_val` correspond to pixels that cannot be traversed.
+Defaults to `nothing`, or, if cost_surface is a GeoData.GeoArray,
+cost_surface.missingval is used.
+
+- `cost_layer_is_conductace`: Boolean. Does the `cost_surface` represent
+permeability/conductance instead of cost/resistance? If `true`, cost is
+calculated as `1 / cost_surface`. Defaults to `false`.
+
+- `connect_four_neighbors_only`: Boolean. Connect only cardinal neighbors in
+`nodemap`? Defaults to `false`.
+
+- `connect_using_avg_cost`: `Boolean`. This is intended to offer methods that
+complement those used in Circuitscape.jl and Omniscape.jl. In this context,
+cost is in units of electrical resistance. If `false`, the cost between two
+nodes with resistances R1 and R2 is calculated by converting resistance to
+conductances, taking the average, then taking the inverse of the result to
+convert back to resistance: `1 / ((1/R1 + 1/R2) / 2)`.
+`connect_using_avg_cost = false` correspondes to the default settings in
+Circuitscape. Defaults to `true'.
 """
 function construct_weighted_graph(cost_surface::Matrix{T} where T <: Real,
                                   nodemap::Matrix{Int};

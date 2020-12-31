@@ -10,8 +10,8 @@ garray = GeoArray(GDALarray("nlcd_2016_frederick_md.tif", missingval = -9))
 @testset "graph construction" begin
     no_data_val = -9999
     cost = [1 1 1;
-               1 3 1;
-               1 NaN no_data_val]
+            1 3 1;
+            1 NaN no_data_val]
 
     nodemap = construct_nodemap(cost, no_data_val = no_data_val)
 
