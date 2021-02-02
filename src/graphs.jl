@@ -55,7 +55,7 @@ end
                              connect_four_neighbors_only = false,
                              connect_using_avg_cost = true)
 
-Construct a weighted graph from a `cost_surface` representing traversal costs`
+Construct a impleWeightedGraph from a `cost_surface` representing traversal costs`
 and a `nodemap` representing the locations in space (either geographic or
 cartesian) of the vertices to be added to the graph. The resulting graph will
 contain edges connecting neighboring elements in `nodemap` with weights
