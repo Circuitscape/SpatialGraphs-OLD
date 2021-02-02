@@ -43,7 +43,7 @@ end
 function sample_node_pairs(sample_weights::Matrix{T} where T <: Real, # Matrix of weights
                                nodemap::Matrix{Int}, # Matrix of node_ids to sample
                                n_pairs::Int)
-    weight = float.(deepcopy(sample_weights))
+    weight = Float64.(deepcopy(sample_weights))
     # Set weights (habitat) to 0 for non-nodes
     weight[nodemap .== 0] .= 0
 
@@ -53,7 +53,7 @@ function sample_node_pairs(sample_weights::Matrix{T} where T <: Real, # Matrix o
     # Initialize object in which to store pairs of nodemap
     samples = Vector{Vector{Int}}()
 
-    # Sample n_pairs * 2 points
+    # Sample n_pairs * 2 points, sample apparently needs Float 64, so coerced above
     the_sample = sample(nodemap, weight_weights, n_pairs * 2, replace = true)
 
     for i in 1:(n_pairs)
