@@ -1,4 +1,4 @@
-function cost_distance(g::AbstractSimpleWeightedGraph,
+function cost_distance(g::SimpleWeightedGraph,
                        nodemap::Union{Matrix{Int}, GeoData.GeoArray},
                        node_ids::Union{Int, Array{Int, 1}}; # will report lowest CD to get to any of these, Number or Vector
                        cost_threshold::Real = Inf,
@@ -15,7 +15,7 @@ function cost_distance(g::AbstractSimpleWeightedGraph,
     end
 end
 
-function pathstate_to_array(cdist::LightGraphs.AbstractPathState,
+function pathstate_to_array(cdist::Graphs.AbstractPathState,
                             nodemap::Matrix{Int};
                             cost_threshold::Real = Inf)
     cd_array = fill(-1., size(nodemap))
@@ -26,7 +26,7 @@ function pathstate_to_array(cdist::LightGraphs.AbstractPathState,
     cd_array
 end
 
-function pathstate_to_geoarray(cdist::LightGraphs.AbstractPathState,
+function pathstate_to_geoarray(cdist::Graphs.AbstractPathState,
                                nodemap::GeoData.GeoArray;
                                cost_threshold::Real = Inf)
     cd_array = pathstate_to_array(cdist,
@@ -41,8 +41,8 @@ function pathstate_to_geoarray(cdist::LightGraphs.AbstractPathState,
 end
 
 function sample_node_pairs(sample_weights::Matrix{T} where T <: Real, # Matrix of weights
-                               nodemap::Matrix{Int}, # Matrix of node_ids to sample
-                               n_pairs::Int)
+                            nodemap::Matrix{Int}, # Matrix of node_ids to sample
+                            n_pairs::Int)
     weight = Float64.(deepcopy(sample_weights))
     # Set weights (habitat) to 0 for non-nodes
     weight[nodemap .== 0] .= 0
@@ -77,7 +77,7 @@ function sample_node_pairs(sample_weights::GeoData.GeoArray,
     return samples
 end
 
-function least_cost_path(g::AbstractGraph,
+function least_cost_path(g::SimpleWeightedGraph,
                          start::Union{Int, Vector{T} where T <: Int},
                          destination::Int;
                          dist_fun::Function = dijkstra_shortest_paths)

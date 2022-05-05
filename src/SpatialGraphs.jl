@@ -1,5 +1,5 @@
 module SpatialGraphs
-using LightGraphs, SimpleWeightedGraphs, StatsBase,
+using Graphs, SimpleWeightedGraphs, StatsBase,
       Base.Threads, ProgressMeter, GeoData
 using ArchGDAL: createlinestring
 
