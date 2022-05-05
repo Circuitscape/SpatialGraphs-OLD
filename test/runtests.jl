@@ -1,4 +1,4 @@
-using Test, SpatialGraphs, LightGraphs, GeoData, ArchGDAL
+using Test, SpatialGraphs, Graphs, GeoData, ArchGDAL
 
 url_base = "https://raw.githubusercontent.com/Circuitscape/datasets/main/"
 # Download the NLCD tile used to create the resistance surface and load it
@@ -85,7 +85,7 @@ end
     @test ll_dims[2] == dims(garray)[2]
 end
 
-# LightGraphs and SimpleWeightedGraphs presumably already test for correctness of
+# Graphs and SimpleWeightedGraphs presumably already test for correctness of
 # methods, so above tests to confirm graphs are constructed properly are most
 # important
 @testset "paths" begin
